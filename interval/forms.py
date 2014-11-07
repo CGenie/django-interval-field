@@ -58,18 +58,9 @@ class IntervalWidget(TextInput):
             days = value.days
             seconds = value.seconds
             microseconds = value.microseconds
-            hours = minutes = 0
-
-            if 'H' in self.format:
-                hours = (seconds / 3600)
-                seconds = seconds - hours * 3600
-
-            if 'M' in self.format:
-                minutes = (seconds / 60)
-                seconds = seconds - minutes * 60
-
+            hours = value.hours
+            minutes = value.minutes
             microseconds = value.microseconds
-
             value = dict(years=years, months=months,
                          days=days, hours=hours, minutes=minutes,
                          seconds=seconds, microseconds=microseconds)
@@ -199,12 +190,12 @@ class IntervalFormField(Field):
 
         if cleaned_value is not None:
             if self.min_value is not None:
-                if cleaned_value < self.min_value:
+                if self._cmp_relativedeltas(cleaned_value, self.min_value) == -1:
                     raise ValidationError(
                     _("This interval must be at least: %s") % self.min_value)
 
             if self.max_value is not None:
-                if cleaned_value > self.max_value:
+                if self._cmp_relativedeltas(cleaned_value, self.max_value) == 1:
                     raise ValidationError(
                         _("This interval must be no more than: %s"
                           ) % self.max_value)
@@ -214,3 +205,10 @@ class IntervalFormField(Field):
                 raise ValidationError(self.default_error_messages['required'])
 
         return Field.clean(self, cleaned_value)
+
+    @staticmethod
+    def _cmp_relativedeltas(lhs, rhs):
+        return cmp(
+            (lhs.years, lhs.months, lhs.days, lhs.hours, lhs.minutes, lhs.seconds, lhs.microseconds),
+            (rhs.years, rhs.months, rhs.days, rhs.hours, rhs.minutes, rhs.seconds, rhs.microseconds),
+        )
